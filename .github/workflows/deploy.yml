@@ -7,16 +7,14 @@ on:
       - master
   workflow_dispatch:
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 permissions:
   contents: read
   pages: write
   id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -34,14 +32,37 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Extract repository name
+      - name: Get repository name and set base path
         id: repo
-        run: echo "REPO_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+        run: |
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          USER_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f1)
+          
+          # Check if this is a user/organization page (repo name ends with .github.io)
+          if [[ "$REPO_NAME" == "$USER_NAME.github.io" ]]; then
+            BASE_PATH="/"
+            echo "Detected user/organization page, using base path: $BASE_PATH"
+          else
+            BASE_PATH="/$REPO_NAME/"
+            echo "Detected project page, using base path: $BASE_PATH"
+          fi
+          
+          echo "name=$REPO_NAME" >> $GITHUB_OUTPUT
+          echo "base=$BASE_PATH" >> $GITHUB_OUTPUT
+          echo "Repository name: $REPO_NAME"
+          echo "Base path: $BASE_PATH"
 
       - name: Build
-        run: npm run build
         env:
-          VITE_BASE_PATH: /${{ env.REPO_NAME }}/
+          VITE_BASE: ${{ steps.repo.outputs.base }}
+        run: npm run build
+
+      - name: Copy 404.html for SPA routing
+        run: |
+          cp dist/index.html dist/404.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
