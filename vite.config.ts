@@ -6,7 +6,10 @@ import path from "path";
 export default defineConfig(({ mode }) => {
   // Get base path from environment variable for GitHub Pages
   // Format: /repository-name/ or empty string for root
+  // Vite automatically reads VITE_* prefixed environment variables
   const base = process.env.VITE_BASE_PATH || '/';
+
+  console.log('Vite base path:', base);
 
   return {
     base,

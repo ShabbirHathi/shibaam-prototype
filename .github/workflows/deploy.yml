@@ -55,7 +55,9 @@ jobs:
       - name: Build
         env:
           VITE_BASE_PATH: ${{ steps.repo.outputs.base }}
-        run: npm run build
+        run: |
+          echo "Building with VITE_BASE_PATH=$VITE_BASE_PATH"
+          npm run build
 
       - name: Copy 404.html for SPA routing
         run: |
